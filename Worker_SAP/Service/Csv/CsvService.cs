@@ -1,13 +1,16 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using Worker_SAP.Model;
 using Worker_SAP.Repository.Csv;
+using Worker_SAP.Repository.Sap.ItemSAP;
+using Worker_SAP.Service.AuthService;
 
 namespace Worker_SAP.Service.Csv
 {
-    public class CsvService(ICsvRepository csvRepository) : ICsvService
+    public class CsvService(ICsvRepository csvRepository, IItemSAPRepository itemRepository, IAuthService authService) : ICsvService
     {
         private static readonly string _pastaRaiz = @"C:\Users\wladimir.souza\Documents\DesafioPowerOne";
 
@@ -17,7 +20,7 @@ namespace Worker_SAP.Service.Csv
 
         private readonly string _caminhoComErro = "Arquivos Para Reprocessar";
 
-        DateTime inicio = DateTime.Now;       
+        DateTime inicio = DateTime.Now;
 
         public async Task ProcessarArquivoAsync(string caminhoArquivo)
         {
@@ -32,36 +35,55 @@ namespace Worker_SAP.Service.Csv
             var itens = csvRepository.LerRegistros(caminhoArquivo);
             lidos = itens.Count();
 
-            foreach (var item in itens)
+            //Chamar AuthService para fazer login
+            LoginResponse loginResponse = await authService.LoginAsync();
+
+            if (loginResponse != null)
             {
-                contadorLinha++;
-
-                if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.UnidadeMedida))
+                foreach (var item in itens)
                 {
-                    comErro++;
+                    if (itemRepository.VerificarExistenciaItem(item.ItemCode))
+                    {
+                        ignorados++;
+                        linhaCsv.Add(contadorLinha);
+                        continue;
+                    }
 
-                    itensComErro.Add(item);                   
+                    contadorLinha++;
 
-                    linhaCsv.Add(contadorLinha);
+                    if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.UnidadeMedida))
+                    {
+                        comErro++;
 
-                    continue;
+                        itensComErro.Add(item);
+
+                        linhaCsv.Add(contadorLinha);
+
+                        continue;
+                    }
+
+                    inseridos++;
+
                 }
 
-                inseridos++;
+                if (comErro > 0)
+                {
+                    GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Campos Obrigatórios Não Preenchidos Totalmente", linhaCsv);
+                    MoverArquivo(caminhoArquivo, _error);
+                    CriarArquivoCsvItensErro(itensComErro);
+                }
+
+                if (comErro == 0 && lidos == inseridos)
+                {
+                    GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Realizado Com Sucesso", linhaCsv);
+                    MoverArquivo(caminhoArquivo, _processed);
+                }
 
             }
-
-            if (comErro > 0)
-            {               
-                GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Campos Obrigatórios Não Preenchidos Totalmente", linhaCsv);
-                MoverArquivo(caminhoArquivo, _error);
-                CriarArquivoCsvItensErro(itensComErro);
-            }
-
-            if (comErro == 0 && lidos == inseridos)
+            else
             {
-                GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Realizado Com Sucesso", linhaCsv);
-                MoverArquivo(caminhoArquivo, _processed);
+                GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Não Foi Possível Realizar Login no Sistema", linhaCsv);
+                MoverArquivo(caminhoArquivo, _error);               
             }
 
         }
@@ -81,7 +103,7 @@ namespace Worker_SAP.Service.Csv
 
             using (var writer = new StreamWriter(caminhoDestino))
             using (var csv = new CsvWriter(writer, config))
-            {                
+            {
                 csv.WriteRecords(itensComErro);
             }
 
@@ -104,7 +126,7 @@ namespace Worker_SAP.Service.Csv
         {
             string pastaLogs = @"C:\Users\wladimir.souza\Documents\DesafioPowerOne\logs";
 
-            if(linhaCsv.Count == 0)
+            if (linhaCsv.Count == 0)
             {
                 linhaCsv.Add(0);
             }
@@ -127,7 +149,7 @@ namespace Worker_SAP.Service.Csv
             sb.AppendLine($"- Registros Ignorados: {ignorados}");
             sb.AppendLine($"- Registros com Erro: {erros}");
             sb.AppendLine("--------------------------------------------------\n");
-            
+
             File.AppendAllText(caminhoLog, sb.ToString());
         }
     }
