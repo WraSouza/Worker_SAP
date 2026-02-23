@@ -44,23 +44,25 @@ namespace Worker_SAP.Service.Csv
                     var itens = csvRepository.LerRegistros<Item>(caminhoArquivo);
                     lidos = itens.Count();
 
-                    itemRepository.ConfigurarSessao(loginResponse.SessionId);
+                    itemRepository.ConfigurarSessao(loginResponse.SessionId);                   
 
                     foreach (var item in itens)
-                    {                        
-                       bool exists = await itemRepository.VerificarExistenciaItem(item.ItemCode);
+                    {
+
+                        contadorLinha++;
+
+                        bool exists = await itemRepository.VerificarExistenciaItem(item.ItemCode);                        
 
                         if (exists)
                         {
                             ignorados++;
-                            linhaCsv.Add(contadorLinha);
+                            
                             continue;
-                        }
+                        }                       
 
-                        contadorLinha++;
+                        if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.SalesUnit))
+                        {                            
 
-                        if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.UnidadeMedida))
-                        {
                             comErro++;
 
                             itensComErro.Add(item);
@@ -69,6 +71,10 @@ namespace Worker_SAP.Service.Csv
 
                             continue;
                         }
+
+                        Item novoItem = new Item(item.ItemCode, item.ItemName);
+
+                        await itemRepository.AdicionarItemAsync(novoItem);
 
                         inseridos++;
 
@@ -79,7 +85,8 @@ namespace Worker_SAP.Service.Csv
                         CriarArquivoCsvItensErro(itensComErro);
                     }
 
-                    await ProcessarItensAsync(caminhoArquivo,inicio,lidos,inseridos,ignorados,comErro,linhaCsv);                   
+                    await ProcessarItensAsync(caminhoArquivo,inicio,lidos,inseridos,ignorados,comErro,linhaCsv); 
+                    
 
 
                 }
@@ -120,10 +127,9 @@ namespace Worker_SAP.Service.Csv
             if (comErro > 0)
             {
                 GerarLog(caminho, inicio, lidos, inseridos, ignorados, comErro, "Campos Obrigatórios Não Preenchidos Totalmente", linhaCsv);
-                MoverArquivo(caminho, _error);               
+                MoverArquivo(caminho, _error);
             }
-
-            if (comErro == 0 && lidos == inseridos)
+            else
             {
                 GerarLog(caminho, inicio, lidos, inseridos, ignorados, comErro, "Realizado Com Sucesso", linhaCsv);
                 MoverArquivo(caminho, _processed);

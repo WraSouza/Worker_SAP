@@ -6,6 +6,6 @@ namespace Worker_SAP.Repository.Sap.ItemSAP
     {
         void ConfigurarSessao(string sessionId);
         Task<bool> VerificarExistenciaItem(string itemCode);
-        Task<bool> AdicionarItemAsync(Item item, string sessionId);
+        Task<bool> AdicionarItemAsync(Item item);
     }
 }

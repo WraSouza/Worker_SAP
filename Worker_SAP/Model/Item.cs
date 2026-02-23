@@ -1,16 +1,24 @@
-﻿namespace Worker_SAP.Model
+﻿using System.Text.Json.Serialization;
+
+namespace Worker_SAP.Model
 {
     public class Item
     {
-        public Item(string itemCode, string itemName, string unidadeMedida)
+        public Item(string itemCode, string itemName)
         {
             ItemCode = itemCode;
             ItemName = itemName;
-            UnidadeMedida = unidadeMedida;
+            ItemType = "itItems";
+            SalesUnit = "UN";
         }
 
-        public string ItemCode { get;  set; }
-        public string ItemName { get;  set; }
-        public string UnidadeMedida { get; set; }
+        [JsonPropertyName("ItemCode")]
+        public string ItemCode { get;  private set; }
+        [JsonPropertyName("ItemName")]
+        public string ItemName { get;  private set; }
+        [JsonPropertyName("SalesUnit")]
+        public string SalesUnit { get; private set; }
+        [JsonPropertyName("ItemType")]
+        public string ItemType { get; private set; }
     }
 }

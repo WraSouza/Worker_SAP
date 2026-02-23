@@ -23,7 +23,8 @@ namespace Worker_SAP.Repository
 
         protected async Task<bool> PostarNoSapAsync<T>(string endpoint, T dados)
         {
-            var response = await _httpClient.PostAsJsonAsync(endpoint, dados);
+            var response = await _httpClient.PostAsJsonAsync(endpoint, dados);            
+
             return response.IsSuccessStatusCode;
         }
     }
