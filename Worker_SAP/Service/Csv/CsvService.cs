@@ -1,16 +1,16 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using Worker_SAP.Model;
 using Worker_SAP.Repository.Csv;
+using Worker_SAP.Repository.Sap.BP;
 using Worker_SAP.Repository.Sap.ItemSAP;
 using Worker_SAP.Service.AuthService;
 
 namespace Worker_SAP.Service.Csv
 {
-    public class CsvService(ICsvRepository csvRepository, IItemSAPRepository itemRepository, IAuthService authService) : ICsvService
+    public class CsvService(ICsvRepository csvRepository, IItemSAPRepository itemRepository,IBusinessPartnerRepository bpRepository, IAuthService authService) : ICsvService
     {
         private static readonly string _pastaRaiz = @"C:\Users\wladimir.souza\Documents\DesafioPowerOne";
 
@@ -18,7 +18,7 @@ namespace Worker_SAP.Service.Csv
 
         private static readonly string _error = Path.Combine(_pastaRaiz, "error");
 
-        private readonly string _caminhoComErro = "Arquivos Para Reprocessar";
+        private readonly string _caminhoComErro = "Arquivos Para Reprocessar";        
 
         DateTime inicio = DateTime.Now;
 
@@ -32,58 +32,101 @@ namespace Worker_SAP.Service.Csv
             List<Item> itensComErro = [];
             List<int> linhaCsv = [];
 
-            var itens = csvRepository.LerRegistros(caminhoArquivo);
-            lidos = itens.Count();
+           string nomeArquivo = Path.GetFileName(caminhoArquivo).ToLower();           
 
             //Chamar AuthService para fazer login
-            LoginResponse loginResponse = await authService.LoginAsync();
+            LoginResponse loginResponse = await authService.LoginAsync();            
 
             if (loginResponse != null)
             {
-                foreach (var item in itens)
+                if (nomeArquivo.Contains("items"))
                 {
-                    if (itemRepository.VerificarExistenciaItem(item.ItemCode))
-                    {
-                        ignorados++;
-                        linhaCsv.Add(contadorLinha);
-                        continue;
+                    var itens = csvRepository.LerRegistros<Item>(caminhoArquivo);
+                    lidos = itens.Count();
+
+                    itemRepository.ConfigurarSessao(loginResponse.SessionId);
+
+                    foreach (var item in itens)
+                    {                        
+                       bool exists = await itemRepository.VerificarExistenciaItem(item.ItemCode);
+
+                        if (exists)
+                        {
+                            ignorados++;
+                            linhaCsv.Add(contadorLinha);
+                            continue;
+                        }
+
+                        contadorLinha++;
+
+                        if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.UnidadeMedida))
+                        {
+                            comErro++;
+
+                            itensComErro.Add(item);
+
+                            linhaCsv.Add(contadorLinha);
+
+                            continue;
+                        }
+
+                        inseridos++;
+
                     }
 
-                    contadorLinha++;
-
-                    if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.UnidadeMedida))
-                    {
-                        comErro++;
-
-                        itensComErro.Add(item);
-
-                        linhaCsv.Add(contadorLinha);
-
-                        continue;
+                    if (comErro > 0)
+                    {                        
+                        CriarArquivoCsvItensErro(itensComErro);
                     }
 
-                    inseridos++;
+                    await ProcessarItensAsync(caminhoArquivo,inicio,lidos,inseridos,ignorados,comErro,linhaCsv);                   
+
 
                 }
-
-                if (comErro > 0)
+                else if (nomeArquivo.Contains("businesspartner"))
                 {
-                    GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Campos Obrigatórios Não Preenchidos Totalmente", linhaCsv);
-                    MoverArquivo(caminhoArquivo, _error);
-                    CriarArquivoCsvItensErro(itensComErro);
+                    var itens = csvRepository.LerRegistros<BusinessPartner>(caminhoArquivo);
+                    lidos = itens.Count();
+
+                    foreach (var item in itens)
+                    {
+                        bool exists = await bpRepository.VerificarExistenciaBPAsync(item.CardCode);
+                    }
+                }
+                else if (nomeArquivo.Contains("salesorder"))
+                {
+                    var itens = csvRepository.LerRegistros<SalesOrder>(caminhoArquivo);
+                    lidos = itens.Count();
+
+                    foreach (var item in itens)
+                    {
+                        
+                    }
                 }
 
-                if (comErro == 0 && lidos == inseridos)
-                {
-                    GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Realizado Com Sucesso", linhaCsv);
-                    MoverArquivo(caminhoArquivo, _processed);
-                }
 
             }
             else
             {
                 GerarLog(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, "Não Foi Possível Realizar Login no Sistema", linhaCsv);
-                MoverArquivo(caminhoArquivo, _error);               
+                MoverArquivo(caminhoArquivo, _error);
+            }
+
+        }
+
+        private async Task ProcessarItensAsync(string caminho, DateTime inicio, int lidos, int inseridos,int ignorados, int comErro,List<int> linhaCsv)
+        {
+
+            if (comErro > 0)
+            {
+                GerarLog(caminho, inicio, lidos, inseridos, ignorados, comErro, "Campos Obrigatórios Não Preenchidos Totalmente", linhaCsv);
+                MoverArquivo(caminho, _error);               
+            }
+
+            if (comErro == 0 && lidos == inseridos)
+            {
+                GerarLog(caminho, inicio, lidos, inseridos, ignorados, comErro, "Realizado Com Sucesso", linhaCsv);
+                MoverArquivo(caminho, _processed);
             }
 
         }
@@ -151,6 +194,7 @@ namespace Worker_SAP.Service.Csv
             sb.AppendLine("--------------------------------------------------\n");
 
             File.AppendAllText(caminhoLog, sb.ToString());
+           
         }
     }
 }

@@ -55,8 +55,9 @@ namespace Worker_SAP.Service.AuthService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during login: {ex.Message}");
-                return null;
+                throw new Exception();
+                //Console.WriteLine($"Error during login: {ex.Message}");
+                //return null;
             }
         }
 

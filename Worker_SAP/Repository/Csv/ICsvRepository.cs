@@ -3,7 +3,7 @@
 namespace Worker_SAP.Repository.Csv
 {
     public interface ICsvRepository
-    {
-        List<Item> LerRegistros(string caminhoArquivo);
+    {       
+        List<T> LerRegistros<T>(string caminhoArquivo) where T : class;
     }
 }

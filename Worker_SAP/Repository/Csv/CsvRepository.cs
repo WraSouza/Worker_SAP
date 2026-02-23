@@ -1,25 +1,25 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
-using Worker_SAP.Model;
 
 namespace Worker_SAP.Repository.Csv
 {
     public class CsvRepository : ICsvRepository
-    {      
-
-        public List<Item> LerRegistros(string caminhoArquivo)
+    {
+        public List<T> LerRegistros<T>(string caminhoArquivo) where T : class
         {
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                Delimiter = ";", 
-                PrepareHeaderForMatch = args => args.Header.ToLower() 
+                Delimiter = ";",
+                PrepareHeaderForMatch = args => args.Header.ToLower()
             };
-            
+
             using var reader = new StreamReader(caminhoArquivo);
             using var csv = new CsvReader(reader, config);
 
-            return csv.GetRecords<Item>().ToList();            
+            // O GetRecords agora usa o T genérico
+            return csv.GetRecords<T>().ToList();
         }
+       
     }
 }

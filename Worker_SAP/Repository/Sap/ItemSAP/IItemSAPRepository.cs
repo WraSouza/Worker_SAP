@@ -4,7 +4,8 @@ namespace Worker_SAP.Repository.Sap.ItemSAP
 {
     public interface IItemSAPRepository
     {
-        bool VerificarExistenciaItem(string itemCode);
-        bool AdicionarItemAsync(Item item, string sessionId);
+        void ConfigurarSessao(string sessionId);
+        Task<bool> VerificarExistenciaItem(string itemCode);
+        Task<bool> AdicionarItemAsync(Item item, string sessionId);
     }
 }

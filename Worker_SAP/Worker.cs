@@ -13,19 +13,13 @@ namespace Worker_SAP
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
-                {
+               
                     var arquivos = Directory.GetFiles(_inbox, "*.csv");
 
                     foreach (var arquivo in arquivos)
                     {
                         await service.ProcessarArquivoAsync(arquivo);
-                    }                    
-
-                }catch (Exception ex)
-                {
-
-                }
+                    }                
               
 
                 if (logger.IsEnabled(LogLevel.Information))

@@ -2,16 +2,14 @@
 
 namespace Worker_SAP.Repository.Sap.ItemSAP
 {
-    public class ItemRepository : IItemSAPRepository
+    public class ItemRepository(HttpClient httpClient) : BaseSAPRepository(httpClient), IItemSAPRepository
     {
-        public bool AdicionarItemAsync(Item item, string sessionId)
+        public Task<bool> AdicionarItemAsync(Item item, string sessionId)
         {
             throw new NotImplementedException();
         }
 
-        public bool VerificarExistenciaItem(string itemCode)
-        {
-            throw new NotImplementedException();
-        }
+        public async Task<bool> VerificarExistenciaItem(string itemCode)
+        => await ExisteNoSapAsync($"https://linux-7lxj:50000/b1s/v1/Items('{itemCode}')");
     }
 }
