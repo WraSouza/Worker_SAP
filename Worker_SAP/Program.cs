@@ -28,5 +28,14 @@ builder.Services.AddHttpClient<IItemSAPRepository, ItemRepository>(client =>
     ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
 });
 
+builder.Services.AddHttpClient<IBusinessPartnerRepository, BusinessPartnerRepository>(client =>
+{
+    client.BaseAddress = new Uri("https://linux-7lxj:50000/b1s/v1/");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+});
+
 var host = builder.Build();
 host.Run();
