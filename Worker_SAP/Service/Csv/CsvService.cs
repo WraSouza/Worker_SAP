@@ -6,11 +6,12 @@ using Worker_SAP.Model;
 using Worker_SAP.Repository.Csv;
 using Worker_SAP.Repository.Sap.BP;
 using Worker_SAP.Repository.Sap.ItemSAP;
+using Worker_SAP.Repository.Sap.SalesOrdersRepositories;
 using Worker_SAP.Service.AuthService;
 
 namespace Worker_SAP.Service.Csv
 {
-    public class CsvService(ICsvRepository csvRepository, IItemSAPRepository itemRepository,IBusinessPartnerRepository bpRepository, IAuthService authService) : ICsvService
+    public class CsvService(ICsvRepository csvRepository, IItemSAPRepository itemRepository,IBusinessPartnerRepository bpRepository,ISalesOrderRepository salesOrderRepository, IAuthService authService) : ICsvService
     {
         private static readonly string _pastaRaiz = @"C:\Users\wladimir.souza\Documents\DesafioPowerOne";
 
@@ -29,8 +30,13 @@ namespace Worker_SAP.Service.Csv
             int ignorados = 0;
             int comErro = 0;
             int contadorLinha = 1;
-            List<Item> itensComErro = [];
+            DocumentLine newDocumentLine;
+            List <Item> itensComErro = [];
             List<BusinessPartner> bpsComErro = [];
+            List<SalesOrderCsv> salesOrderComErro = [];
+            List<ValidacaoLinha> validacaoLinhaSalesOrder = [];
+            List<SalesOrder> salesOrders = [];
+            List<DocumentLine> documentLine =[];
             List<int> linhaCsv = [];
 
            string nomeArquivo = Path.GetFileName(caminhoArquivo).ToLower();           
@@ -73,18 +79,13 @@ namespace Worker_SAP.Service.Csv
 
                         Item novoItem = new Item(item.ItemCode, item.ItemName);
 
-                        await itemRepository.AdicionarItemAsync(novoItem);
+                        //await itemRepository.AdicionarItemAsync(novoItem);
 
                         inseridos++;
 
-                    }
+                    }                   
 
-                    if (comErro > 0)
-                    {                        
-                        CriarArquivoCsvItensErro(itensComErro);
-                    }
-
-                    await ProcessarItensAsync(caminhoArquivo,inicio,lidos,inseridos,ignorados,comErro,linhaCsv); 
+                    await ProcessarItensAsync(itensComErro,"Items",caminhoArquivo, inicio,lidos,inseridos,ignorados,comErro,linhaCsv); 
 
                 }
                 else if (nomeArquivo.Contains("businesspartner"))
@@ -132,24 +133,86 @@ namespace Worker_SAP.Service.Csv
                         //await bpRepository.AdicionarBPAsync(businessPartner);
 
                         inseridos++;
-                    }
+                    }                  
 
-                    if (comErro > 0)
-                    {
-                        CriarArquivoCsvErro(bpsComErro,"BusinessPartner");
-                    }
-
-                    await ProcessarItensAsync(caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, linhaCsv);
+                    await ProcessarItensAsync(bpsComErro, "BusinessPartner",caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, linhaCsv);
                 }
                 else if (nomeArquivo.Contains("salesorder"))
                 {
-                    var itens = csvRepository.LerRegistros<SalesOrder>(caminhoArquivo);
+                    var itens = csvRepository.LerRegistros<SalesOrderCsv>(caminhoArquivo);
                     lidos = itens.Count();
+
+                    salesOrderRepository.ConfigurarSessao(loginResponse.SessionId);
 
                     foreach (var item in itens)
                     {
-                        
+                        contadorLinha++;
+
+                        bool exists = await salesOrderRepository.VerificarExistenciaOrder(item.Numero);
+
+                        if (exists)
+                        {
+                            ignorados++;
+
+                            continue;
+                        }
+
+                        if (PossuiCamposVazios(item))
+                        {
+                            comErro++;
+
+                            salesOrderComErro.Add(item);
+
+                            linhaCsv.Add(contadorLinha);
+
+                            continue;
+                        }
+
+                        //Criar a lógica de verificar as linhas se são iguais.
+                        var registroExistente = salesOrders.FirstOrDefault(x => x.NumAtCard == item.Numero);
+
+                        if(registroExistente == null)
+                        {
+                            newDocumentLine = new DocumentLine(item.ItemCode, item.Quantidade, item.PrecoUnitario);
+                            
+                            documentLine.Add(newDocumentLine);
+
+                            SalesOrder salesOrder = new SalesOrder(item.Numero
+                                                              , DateOnly.Parse(item.DataLancamento)
+                                                              , DateOnly.Parse(item.DataDocumento)
+                                                              , DateOnly.Parse(item.DataVencimento)
+                                                              , item.CardCode);
+
+                            salesOrder.AddDocumentLine(newDocumentLine);
+
+                            salesOrders.Add(salesOrder);
+
+                        }
+                        else
+                        {
+                            if(DateOnly.Parse(item.DataLancamento) != registroExistente.DocDate || DateOnly.Parse(item.DataDocumento) != registroExistente.TaxDate || DateOnly.Parse(item.DataVencimento) != registroExistente.DocDueDate || item.CardCode != registroExistente.CardCode)
+                            {
+                                comErro++;
+                                salesOrderComErro.Add(item);
+                                linhaCsv.Add(contadorLinha);
+                                continue;
+                            }
+
+                           newDocumentLine = new DocumentLine(item.ItemCode, item.Quantidade, item.PrecoUnitario);
+
+                           registroExistente.AddDocumentLine(newDocumentLine);
+
+                        }
+
+                        inseridos++;
                     }
+
+                    foreach (var order in salesOrders)
+                    {
+                        await salesOrderRepository.AdicionarOrderAsync(order);
+                    }
+
+                    await ProcessarItensAsync(salesOrderComErro, "SalesOrder", caminhoArquivo, inicio, lidos, inseridos, ignorados, comErro, linhaCsv);
                 }
             }
             else
@@ -180,10 +243,11 @@ namespace Worker_SAP.Service.Csv
             return false; 
         }
 
-        private async Task ProcessarItensAsync(string caminho, DateTime inicio, int lidos, int inseridos,int ignorados, int comErro,List<int> linhaCsv)
+        private async Task ProcessarItensAsync<T>(List<T> classeDesejada,string tipoArquivo,string caminho, DateTime inicio, int lidos, int inseridos,int ignorados, int comErro,List<int> linhaCsv) where T : class
         {
             if (comErro > 0)
             {
+                CriarArquivoCsvErro(classeDesejada, tipoArquivo);
                 GerarLog(caminho, inicio, lidos, inseridos, ignorados, comErro, "Campos Obrigatórios Não Preenchidos Totalmente", linhaCsv);
                 MoverArquivo(caminho, _error);
             }
@@ -218,27 +282,7 @@ namespace Worker_SAP.Service.Csv
                 csv.WriteRecords(registrosComErro);
             }
         }
-
-        private void CriarArquivoCsvItensErro(List<Item> itensComErro)
-        {
-            string caminhoCompleto = Path.Combine(_error, _caminhoComErro);
-
-            if (!Directory.Exists(caminhoCompleto))
-            {
-                Directory.CreateDirectory(caminhoCompleto);
-            }
-
-            string caminhoDestino = Path.Combine(caminhoCompleto, $"ERROS_{DateTime.Now:yyyyMMdd}.csv");
-
-            var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" };
-
-            using (var writer = new StreamWriter(caminhoDestino))
-            using (var csv = new CsvWriter(writer, config))
-            {
-                csv.WriteRecords(itensComErro);
-            }
-
-        }
+       
 
         private static void MoverArquivo(string caminhoArquivo, string destino)
         {

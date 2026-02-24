@@ -1,26 +1,41 @@
-﻿namespace Worker_SAP.Model
+﻿using CsvHelper.Configuration.Attributes;
+using System.Text.Json.Serialization;
+
+namespace Worker_SAP.Model
 {
     public class SalesOrder
     {
-        public SalesOrder(string numero, DateOnly dataLancamento, DateOnly dataDocumento, DateOnly dataVencimento, string cardCode, string itemCode, string precoUnitario, string quantidade)
+        public SalesOrder(string numero, DateOnly dataLancamento, DateOnly dataDocumento, DateOnly dataVencimento, string cardCode)
         {
-            Numero = numero;
-            DataLancamento = dataLancamento;
-            DataDocumento = dataDocumento;
-            DataVencimento = dataVencimento;
-            CardCode = cardCode;
-            ItemCode = itemCode;
-            PrecoUnitario = precoUnitario;
-            Quantidade = quantidade;
+            NumAtCard = numero;
+            DocDate = dataLancamento;
+            TaxDate = dataDocumento;
+            DocDueDate = dataVencimento;
+            CardCode = cardCode;                       
+            DocumentLines = new List<DocumentLine>();           
         }
 
-        public string Numero { get; private set; }
-        public DateOnly DataLancamento { get; private set; }
-        public DateOnly DataDocumento { get; private set; }
-        public DateOnly DataVencimento { get; private set; }
-        public string CardCode { get; private set; }
-        public string ItemCode { get; private set; }
-        public string PrecoUnitario { get; private set; }
-        public string Quantidade { get; private set; }
+        [JsonPropertyName("NumAtCard")]
+        public string NumAtCard { get; set; }
+        [Format("yyyy-MM-dd")]
+        [JsonPropertyName("DocDate")]
+        public DateOnly DocDate { get; set; }
+        [Format("yyyy-MM-dd")]
+        [JsonPropertyName("TaxDate")]
+        public DateOnly TaxDate { get; set; }
+        [Format("yyyy-MM-dd")]
+        [JsonPropertyName("DocDueDate")]
+        public DateOnly DocDueDate { get; set; }
+        [JsonPropertyName("CardCode")]
+        public string CardCode { get; set; }        
+        [JsonPropertyName("DocumentLines")]
+        public List<DocumentLine> DocumentLines { get; set; }
+
+        public void AddDocumentLine(DocumentLine line)
+        {
+            DocumentLines.Add(line);
+        }
+
+
     }
 }

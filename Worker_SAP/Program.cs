@@ -3,6 +3,7 @@ using Worker_SAP.Model;
 using Worker_SAP.Repository.Csv;
 using Worker_SAP.Repository.Sap.BP;
 using Worker_SAP.Repository.Sap.ItemSAP;
+using Worker_SAP.Repository.Sap.SalesOrdersRepositories;
 using Worker_SAP.Service.AuthService;
 using Worker_SAP.Service.Csv;
 
@@ -29,6 +30,15 @@ builder.Services.AddHttpClient<IItemSAPRepository, ItemRepository>(client =>
 });
 
 builder.Services.AddHttpClient<IBusinessPartnerRepository, BusinessPartnerRepository>(client =>
+{
+    client.BaseAddress = new Uri("https://linux-7lxj:50000/b1s/v1/");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+});
+
+builder.Services.AddHttpClient<ISalesOrderRepository, SalesOrderRepository>(client =>
 {
     client.BaseAddress = new Uri("https://linux-7lxj:50000/b1s/v1/");
 })

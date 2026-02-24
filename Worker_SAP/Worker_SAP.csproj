@@ -13,8 +13,4 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Repository\Sap\SalesOrder\" />
-  </ItemGroup>
 </Project>

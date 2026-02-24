@@ -11,7 +11,9 @@ namespace Worker_SAP.Repository.Csv
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 Delimiter = ";",
-                PrepareHeaderForMatch = args => args.Header.ToLower()
+                PrepareHeaderForMatch = args => args.Header.ToLower(),
+                HeaderValidated = null,
+                MissingFieldFound = null
             };
 
             using var reader = new StreamReader(caminhoArquivo);
