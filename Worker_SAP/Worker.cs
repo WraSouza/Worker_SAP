@@ -16,9 +16,17 @@ namespace Worker_SAP
                
                     var arquivos = Directory.GetFiles(_inbox, "*.csv");
 
-                    foreach (var arquivo in arquivos)
+                    var arquivosOrdenados = arquivos.OrderBy(f =>
                     {
-                        await service.ProcessarArquivoAsync(arquivo);
+                        if (f.Contains("items", StringComparison.OrdinalIgnoreCase)) return 1;
+                        if (f.Contains("businesspartners", StringComparison.OrdinalIgnoreCase)) return 2;
+                        return 3;
+                    });
+
+                    foreach (var arquivo in arquivosOrdenados)
+                    {                        
+                        await service.ProcessarArquivoAsync(arquivo);                        
+
                     }                
               
 
