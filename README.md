@@ -68,4 +68,15 @@ Inicie o serviço
 ```bash
 sc start WorkerSAP
 ```
+
+## Fluxo de Funcionamento
+
+<img width="457" height="512" alt="image" src="https://github.com/user-attachments/assets/42d75f08-7067-4358-ba56-5c3b27367650" />
+
+## Fluxo Técnico
+
+<img width="696" height="621" alt="FluxoTecnico Worker drawio" src="https://github.com/user-attachments/assets/ad62a8ff-c8f1-4aa1-ae2a-448c3a1ad031" />
+
+
+
   
