@@ -33,8 +33,7 @@ namespace Worker_SAP.Service.Csv
             DocumentLine newDocumentLine;
             List <Item> itensComErro = [];
             List<BusinessPartner> bpsComErro = [];
-            List<SalesOrderCsv> salesOrderComErro = [];
-            List<ValidacaoLinha> validacaoLinhaSalesOrder = [];
+            List<SalesOrderCsv> salesOrderComErro = [];            
             List<SalesOrder> salesOrders = [];
             List<DocumentLine> documentLine =[];
             List<int> linhaCsv = [];
