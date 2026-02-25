@@ -14,21 +14,22 @@ namespace Worker_SAP
             while (!stoppingToken.IsCancellationRequested)
             {
                
-                    var arquivos = Directory.GetFiles(_inbox, "*.csv");
+                var arquivos = Directory.GetFiles(_inbox, "*.csv");
 
-                    var arquivosOrdenados = arquivos.OrderBy(f =>
-                    {
-                        if (f.Contains("items", StringComparison.OrdinalIgnoreCase)) return 1;
-                        if (f.Contains("businesspartners", StringComparison.OrdinalIgnoreCase)) return 2;
-                        return 3;
-                    });
 
-                    foreach (var arquivo in arquivosOrdenados)
-                    {                        
-                        await service.ProcessarArquivoAsync(arquivo);                        
+                var arquivosOrdenados = arquivos.OrderBy(f =>
+                {
+                    if (f.Contains("items", StringComparison.OrdinalIgnoreCase)) return 1;
+                    if (f.Contains("businesspartners", StringComparison.OrdinalIgnoreCase)) return 2;
+                    return 3;
+                });
 
-                    }                
-              
+                foreach (var arquivo in arquivosOrdenados)
+                {
+                    await service.ProcessarArquivoAsync(arquivo);
+
+                }
+
 
                 if (logger.IsEnabled(LogLevel.Information))
                 {

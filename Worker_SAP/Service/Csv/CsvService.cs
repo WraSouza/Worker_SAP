@@ -57,15 +57,6 @@ namespace Worker_SAP.Service.Csv
                     {
                         contadorLinha++;
 
-                        bool exists = await itemRepository.VerificarExistenciaItem(item.ItemCode);                        
-
-                        if (exists)
-                        {
-                            ignorados++;
-                            
-                            continue;
-                        }                       
-
                         if (string.IsNullOrEmpty(item.ItemName) || string.IsNullOrEmpty(item.ItemCode) || string.IsNullOrEmpty(item.SalesUnit))
                         {
                             comErro++;
@@ -77,9 +68,18 @@ namespace Worker_SAP.Service.Csv
                             continue;
                         }
 
+                        bool exists = await itemRepository.VerificarExistenciaItem(item.ItemCode);                        
+
+                        if (exists)
+                        {
+                            ignorados++;
+                            
+                            continue;
+                        }  
+
                         Item novoItem = new Item(item.ItemCode, item.ItemName);
 
-                        //await itemRepository.AdicionarItemAsync(novoItem);
+                        await itemRepository.AdicionarItemAsync(novoItem);
 
                         inseridos++;
 
@@ -130,7 +130,7 @@ namespace Worker_SAP.Service.Csv
                                                                                ,item.Estado
                                                                                ,item.Pais);
 
-                        //await bpRepository.AdicionarBPAsync(businessPartner);
+                        await bpRepository.AdicionarBPAsync(businessPartner);
 
                         inseridos++;
                     }                  
