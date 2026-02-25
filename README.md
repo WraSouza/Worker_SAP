@@ -36,3 +36,36 @@ Sua principal função é automatizar o processamento de arquivos **CSV**, reali
 1. Clone este repositório:
    ```bash
    git clone https://github.com/seu-usuario/worker-sap.git
+2. Configure o projeto no Visual Studio ou outro ambiente compatível com .NET 10
+3. Crie/Ajuste os parâmetros de conexão com o SAPB1 para utilizar a Service Layer. Essa configuração pode ser feita no appsettings ou no secrets.json e deve seguir esse formato
+```json
+"SAPLogin": {
+  "UserName": "username",
+  "Password": "senha",
+  "CompanyDB": "base_de_dados"
+}
+
+⚠️ Atenção: nunca compartilhe suas credenciais reais em repositórios públicos. Use variáveis de ambiente ou arquivos de configuração privados.
+```
+---
+
+
+ ## 📦 Publicação do Serviço
+
+Antes de criar o serviço no Windows, é necessário **publicar o projeto** para gerar o executável pronto para produção.
+
+1. No Visual Studio, vá em **Build > Publish**.
+2. Escolha uma pasta de destino (ex.: `C:\WorkerSAP\publish`).
+3. O processo de publicação irá gerar o arquivo `Worker_SAP.exe` e todas as dependências necessárias.
+
+Após a publicação, registre o serviço no Windows:
+
+```bash
+sc create WorkerSAP binPath= "C:\WorkerSAP\publish\WorkerSAP.exe"
+```
+
+Inicie o serviço
+```bash
+sc start WorkerSAP
+```
+  
