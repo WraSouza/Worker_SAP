@@ -222,7 +222,7 @@ namespace Worker_SAP.Service.Csv
 
         }
 
-        public static bool PossuiCamposVazios(object obj)
+        private  static bool PossuiCamposVazios(object obj)
         {
             // Pega todas as propriedades públicas da classe
             var propriedades = obj.GetType().GetProperties();
