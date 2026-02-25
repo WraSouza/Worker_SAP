@@ -11,6 +11,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddMemoryCache();
 
+builder.Services.AddWindowsService();
+
 builder.Services.Configure<LoginRequest>(builder.Configuration.GetSection("SAPLogin"));
 
 builder.Services.AddSingleton<HttpClient>();
